@@ -1,0 +1,8 @@
+matplotlib
+scipy
+six
+pyyaml
+numpy
+psutil
+dendropy
+colored_traceback
