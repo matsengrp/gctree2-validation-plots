@@ -13,6 +13,7 @@ import ete3
 DEBUG=False
 
 
+
 @click.command()
 @click.argument('output_file')
 @click.argument('parsimony_forest')
