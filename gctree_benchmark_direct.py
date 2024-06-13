@@ -207,6 +207,15 @@ def read_true_newick(newicks_path, match_path):
                 return newick
     raise RuntimeError(f"No newick matching path {match_path} found in file {newicks_path}.")
 
+
+def convert_inference_seqname(key):
+    # examples: 
+    # leaf-abcdefhijlpqrstuvxyz_contig_igh+igk   --> leaf-abcdefhijlpqrstuvxyz
+    # leaf-abcdefhiklmnoprstuwx-2_contig_igh+igk --> leaf-abcdefhiklmnoprstuwx
+    parts = key.split('_')[0].split('-')
+    return parts[0] + '-' + parts[1]
+
+
 def get_true_tree(input_sequences_path, true_treespath):
     input_sequences_path = Path(input_sequences_path)
     input_fasta = hdag.utils.load_fasta(input_sequences_path)
@@ -216,14 +225,12 @@ def get_true_tree(input_sequences_path, true_treespath):
     def evaluate_paths(possible_paths):
         for path in possible_paths:
             candidate_fasta = hdag.utils.load_fasta(path / "simu.fasta")
-            for key in input_fasta:
-                if key != "XnaiveX":
-                    if key[0:-15] in candidate_fasta:
-                        return path
+            if all(convert_inference_seqname(key) in candidate_fasta for key in input_fasta if key != "XnaiveX"):
+                return path
+        raise RuntimeError("Could not match simulation with inference")
+
         
     matched_path = evaluate_paths(possible_paths)
-    if matched_path is None:
-        raise RuntimeError("Could not match simulation with inference")
 
 
     simu_tree = ete3.Tree(newick=read_true_newick(true_treespath, matched_path), format=1)
@@ -246,14 +253,16 @@ def get_true_tree(input_sequences_path, true_treespath):
     for node in simu_tree.traverse():
         node.add_feature("sequence", seq_convert(node.nuc_seq))
     s1 = {n.name: n.sequence for n in simu_tree.iter_leaves()} 
-    s2 = {key[0:-15]: val for key, val in input_fasta.items() if key != 'XnaiveX'}
+    s2 = {convert_inference_seqname(key): val for key, val in input_fasta.items() if key != 'XnaiveX'}
     if s1 != s2:
         print("keys match", set(s1.keys()) == set(s2.keys()))
         print("seqs match", set(s1.values()) == set(s2.values()))
+        print("num seqs", len(s1), len(s2))
+        print("num unique seqs", len(set(s1.values())), len(set(s2.values())))
         print("seq lengths:", len(next(iter(s1.values()))), len(next(iter(s2.values()))))
-        for key, seq in s1.items():
-            if seq != s2[key]:
-                print("nonmatched seq at key", key, '\n', seq, '\n', s2[key])
+        set1 = set(s1.keys())
+        set2 = set(s2.keys())
+        print(set1 - set2, set2 - set1)
         raise RuntimeError("Couldn't find tree with matching leaf sequences")
 
     # Do any collapsing of simu_tree that may be necessary for comparison with

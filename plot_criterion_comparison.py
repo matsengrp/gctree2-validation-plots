@@ -253,10 +253,12 @@ hdag_comparison_df = pl.DataFrame(
     [
         pl.Series(name="Log_hDAG_NumTreesRanked", values=[math.log(int(x)) for x in df["treecountWhole DAGRaw_rf"]]),
         pl.Series(name="Log_dnapars_NumTrees", values=[math.log(int(x)) for x in df["dnapars_NumTrees"]]),
+        pl.Series(name="RF_Improvement", values=(df["minWhole DAGRaw_rf"] < df["dnapars_minRaw_rf"])),
         df["trimval_best_LogContextLikelihood"],
         df["dnapars_maxLogContextLikelihood"],
         df["trimval_best_LogBPLikelihood"],
         df["dnapars_maxLogBPLikelihood"],
+        df["SimID"],
     ]
 )
 
@@ -448,3 +450,12 @@ print(filename)
 
 # fig.tight_layout()
 # fig.savefig("stacked_scatter_plots.pdf")
+
+
+# ### For choosing a tree_scatter replicate:
+
+tree_scatter_test_df = hdag_comparison_df.sort("Trees Ranked Improvement", "Log_dnapars_NumTrees", "Log_hDAG_NumTreesRanked").filter(pl.col("Log_dnapars_NumTrees") > 2).filter(pl.col("Context Likelihood Improvement") > 0)[["SimID", "Log_hDAG_NumTreesRanked", "Log_dnapars_NumTrees", "RF_Improvement", "Context Likelihood Improvement", "Branching Process Likelihood Improvement"]].sort("RF_Improvement")
+
+print("Choose one of these replicates to run tree_scatter.py on:")
+pl.Config.set_tbl_rows(100)
+print(tree_scatter_test_df.tail(100))

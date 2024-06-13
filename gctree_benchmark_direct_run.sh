@@ -38,7 +38,12 @@ done
 
 python plot_criterion_comparison.py
 
+echo "Edit gctree_benchmark_direct_run.sh with path to best replicate (paths are in" $true_filepaths") then rerun tree_scatter.py"
+
 gctreepath=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v4/seed-0/obs-times-40/partis/gctree/iclust-46/
+gctreepath=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v4/seed-0/obs-times-30/partis/gctree/iclust-20/
+gctreepath=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v4/seed-0/obs-times-30/partis/gctree/iclust-26/
+gctreepath=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v4/seed-0/obs-times-50/partis/gctree/iclust-0/
 python gctree_benchmark_direct.py ignorethisfile.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX -a testdir/all_dagtrees_example.p
 
 rm ignorethisfile.p
