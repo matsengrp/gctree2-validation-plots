@@ -48,6 +48,11 @@ def simulation_has_context(sim_log_path):
 rf_handlers = [(lambda raw_rf, infercount, truecount, numleaves: raw_rf / (infercount + truecount - 2 * numleaves), "Normalized_rf"),
                (lambda raw_rf, infercount, truecount, numleaves: raw_rf, "Raw_rf")]
 
+lex_val_names = {
+    "best_Likelihood_then_Context": ("BPLikelihoodLogLoss", "ContextLikelihoodLogLoss"),
+    "best_Reversions_then_Default": ("NaiveReversions", "BPLikelihoodLogLoss", "ContextLikelihoodLogLoss"),
+    "best_Reversions_then_Context": ("NaiveReversions", "ContextLikelihoodLogLoss"),
+}
 
 for sim_id, simdict in datacounters:
     counterdict = simdict["WholeDAG"]
@@ -100,17 +105,17 @@ for sim_id, simdict in datacounters:
 
     for key, val in simdict["WholeDAGTrimVals"].items():
         if isinstance(val, tuple):
-            datadict["trimval_lexicographic_likelihood"].append(val[0])
-            datadict["trimval_lexicographic_mutpars"].append(val[1])
+            for valname, val in zip(lex_val_names[key], val):
+                datadict[valname + "_from_" + key].append(float(val))
         else:
-            datadict["trimval_" + key].append(val)
+            datadict["trimval_" + key].append(float(val))
 
 
     # Summarize some simulation characteristics:
     sim_inference_path = Path(simdict["InferencePath"])
     with open(sim_inference_path.parent / "abundances.csv", 'r') as fh:
         abundances = [int(l.split(',')[-1]) for l in fh]
-    datadict["max_abundance"].append(max(abundances))
+    datadict["max_abundance"].append(float(max(abundances)))
     datadict["fraction_nonsingleton"].append(len([it for it in abundances if it > 1]) / len(abundances))
     datadict["context_dependent"].append(simulation_has_context(simdict["SimulationPath"] / "../../../simu.log"))
 
@@ -127,7 +132,7 @@ for faceted_df, facet_name in [(df.filter(abundance_filter), "informative_abunda
 
     # Creating the box plot
     fig, ax = plt.subplots(figsize=(8, 8))  # Create a figure and an axes
-    columns = ["dnapars_meanNormalized_rf", "meanWhole DAGNormalized_rf", "meanLogBPLikelihoodNormalized_rf", "meanMut. Pars.Normalized_rf", "meanLogContextLikelihoodNormalized_rf","meanLikelihood_then_ContextNormalized_rf", "meanNumAllelesNormalized_rf", "minWhole DAGNormalized_rf"]
+    columns = ["meanWhole DAGNormalized_rf", "meanLikelihood_then_ContextNormalized_rf", "meanReversions_then_DefaultNormalized_rf", "meanReversions_then_ContextNormalized_rf", "minWhole DAGNormalized_rf"]
     box = ax.boxplot(
         [faceted_df.select((pl.col(col)).alias("this"))["this"] for col in columns],
         patch_artist=True,
@@ -145,8 +150,7 @@ for faceted_df, facet_name in [(df.filter(abundance_filter), "informative_abunda
     ax.set_title(f"mean RF distance for each criterion, {facet_name}, n_sims={len(faceted_df)}")
     ax.set_ylabel('RF distance')
     col_names = [col[4:] for col in columns]
-    col_names[0] = "Parsimony Only\n(dnapars only)"
-    col_names[1] = "Parsimony Only\n(Whole hDAG)"
+    col_names[0] = "Parsimony Only\n(Whole hDAG)"
     col_names[-1] = "Best MP Tree Found"
     ax.set_xticklabels(col_names)  # Set the labels for each box plot
     ax.tick_params(axis='x', labelrotation=90)
@@ -185,8 +189,8 @@ fig.savefig(fig_name)
 print(fig_name)
 
 # Calculate RF distance improvements and prepare data for box plot
-improvements = {'LogBPLikelihood': [], 'Mut. Pars.': []}
-for opt, criterion in [("max", "LogBPLikelihood"), ("min", "Mut. Pars.")]:
+improvements = {'BPLikelihoodLogLoss': [], 'ContextLikelihoodLogLoss': []}
+for opt, criterion in [("min", "BPLikelihoodLogLoss"), ("min", "ContextLikelihoodLogLoss")]:
     _x_y_data = [f"dnapars_{opt}_{criterion}_mean_norm_rf", f"mean{criterion}Normalized_rf"]
     x, y = [df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data]
     improvement = y - x
@@ -216,55 +220,55 @@ fig_name = "RF_distance_improvement_boxplot.pdf"
 fig.savefig(fig_name)
 print(fig_name)
 
-# for criterion in ["LogBPLikelihood", "Mut. Pars."]:
-#     # Using the object-oriented interface
-#     fig, ax = plt.subplots()
+for criterion in ["BPLikelihoodLogLoss", "ContextLikelihoodLogLoss"]:
+    # Using the object-oriented interface
+    fig, ax = plt.subplots()
 
 
-#     # Add grid lines
-#     ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+    # Add grid lines
+    ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 
-#     _x_y_data = [f"dnapars_max_{criterion}_mean_norm_rf", f"mean{criterion}Normalized_rf"]
-#     xy = [df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data]
-#     min_val = 0
-#     max_val = max(xy[0].max(), xy[1].max())
+    _x_y_data = [f"dnapars_max_{criterion}_mean_norm_rf", f"mean{criterion}Normalized_rf"]
+    xy = [df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data]
+    min_val = 0
+    max_val = max(xy[0].max(), xy[1].max())
 
-#     scatter = ax.scatter(
-#         *xy,
-#         edgecolor='black',  # Black border around each point
-#     )
-#     # Add y=x line
-#     ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.3)  # 'k--' for black dashed line, alpha for transparency
+    scatter = ax.scatter(
+        *xy,
+        edgecolor='black',  # Black border around each point
+    )
+    # Add y=x line
+    ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.3)  # 'k--' for black dashed line, alpha for transparency
 
-#     ax.set_title(f"mean RF improvement with hDAG, trimmed by {criterion}")
-#     ax.set_xlabel('Dnapars Best Tree RF Distance')
-#     ax.set_ylabel('hDAG Best Tree RF Distance')
-#     fig_name = f"{criterion.replace(' ', '_').replace('.','')}_hdag_improve_RF_Scatter.pdf"
-#     fig.savefig(fig_name)
-#     print(fig_name)
+    ax.set_title(f"mean RF improvement with hDAG, trimmed by {criterion}")
+    ax.set_xlabel('Dnapars Best Tree RF Distance')
+    ax.set_ylabel('hDAG Best Tree RF Distance')
+    fig_name = f"{criterion.replace(' ', '_').replace('.','')}_hdag_improve_RF_Scatter.pdf"
+    fig.savefig(fig_name)
+    print(fig_name)
 
 # df = pl.read_csv('gctree_hdag_compare_output.csv', dtypes={"NumTreesRanked": pl.String})
 # non_hdag_df = df.filter(pl.col('FromHistoryDAG') == False)
 # hdag_df = df.filter(pl.col('FromHistoryDAG'))
 # hdag_df = hdag_df.rename(lambda name: name if name == "ParsimonyForestPath" else "hDAG_" + name)
 # combined_df = hdag_df.join(non_hdag_df, on="ParsimonyForestPath")
-
+#
 hdag_comparison_df = pl.DataFrame(
     [
         pl.Series(name="Log_hDAG_NumTreesRanked", values=[math.log(int(x)) for x in df["treecountWhole DAGRaw_rf"]]),
         pl.Series(name="Log_dnapars_NumTrees", values=[math.log(int(x)) for x in df["dnapars_NumTrees"]]),
         pl.Series(name="RF_Improvement", values=(df["minWhole DAGRaw_rf"] < df["dnapars_minRaw_rf"])),
-        df["trimval_best_LogContextLikelihood"],
-        df["dnapars_maxLogContextLikelihood"],
-        df["trimval_best_LogBPLikelihood"],
-        df["dnapars_maxLogBPLikelihood"],
+        df["trimval_best_ContextLikelihoodLogLoss"],
+        df["dnapars_maxContextLikelihoodLogLoss"],
+        df["trimval_best_BPLikelihoodLogLoss"],
+        df["dnapars_maxBPLikelihoodLogLoss"],
         df["SimID"],
     ]
 )
 
 hdag_comparison_df = hdag_comparison_df.with_columns(
-    (pl.col("trimval_best_LogContextLikelihood") - pl.col("dnapars_maxLogContextLikelihood")).alias("Context Likelihood Improvement"),
-    (pl.col("trimval_best_LogBPLikelihood") - pl.col("dnapars_maxLogBPLikelihood")).alias("Branching Process Likelihood Improvement"),
+    (-pl.col("trimval_best_ContextLikelihoodLogLoss") + pl.col("dnapars_maxContextLikelihoodLogLoss")).alias("Context Likelihood Improvement"),
+    (-pl.col("trimval_best_BPLikelihoodLogLoss") + pl.col("dnapars_maxBPLikelihoodLogLoss")).alias("Branching Process Likelihood Improvement"),
     (pl.col("Log_hDAG_NumTreesRanked") - pl.col("Log_dnapars_NumTrees")).alias("Trees Ranked Improvement"),
 )
 
@@ -311,8 +315,8 @@ for ax in (ax1, ax2):
 
 # Helper function to categorize data
 def categorize_data(df, y_col):
-    df = df.with_columns((df[y_col].exp() > 1).cast(pl.Utf8).alias("category"))
-    proportion_above = df.filter(pl.col(y_col).exp() > 1).height / df.height
+    df = df.with_columns((df[y_col] < 0).alias("category"))
+    proportion_above = df.filter(pl.col("category")).height / df.height
     return df, proportion_above
 
 # Categorize data
@@ -321,10 +325,10 @@ hdag_comparison_df2, prop_above2 = categorize_data(hdag_comparison_df, "Context 
 
 # Function to plot categorized data
 def plot_categorized_data(ax, df, x_col, y_col, color_base, label_base):
-    for category, color in zip(["true", "false"], [color_base, mcolors.to_rgba(color_base, alpha=0.5)]):
+    for category, color in zip([True, False], [color_base, mcolors.to_rgba(color_base, alpha=0.5)]):
         subset = df.filter(pl.col("category") == category)
-        linewidths = 1 if category == 'true' else 0
-        ax.scatter(subset[x_col].exp().to_numpy(), subset[y_col].exp().to_numpy(), color=color, alpha=.5, s=20, edgecolor='k', linewidths=linewidths, label=f"{'' if category == 'true' else 'No '} Improvement: {subset.height / df.height:.2%}", zorder=4)
+        linewidths = 1 if category else 0
+        ax.scatter(subset[x_col].exp().to_numpy(), subset[y_col].exp().to_numpy(), color=color, alpha=.5, s=20, edgecolor='k', linewidths=linewidths, label=f"{'' if category else 'No '} Improvement: {subset.height / df.height:.2%}", zorder=4)
 
 # Plotting the data
 plot_categorized_data(ax1, hdag_comparison_df, "Trees Ranked Improvement", "Branching Process Likelihood Improvement", colormaps['Dark2'].colors[0], 'Branching Process Likelihood Improvement')
@@ -333,6 +337,7 @@ plot_categorized_data(ax2, hdag_comparison_df2, "Trees Ranked Improvement", "Con
 # Setting log scale for axes
 ax1.set_xscale('log')
 ax2.set_yscale('log')
+ax1.set_yscale('log')
 
 # Adding labels and title
 ax2.set_xlabel('Fold Increase in Trees Ranked')
@@ -375,32 +380,32 @@ fig.savefig(filename)
 print(filename)
 
 
-fig, axs = plt.subplots(3, 1, figsize=(8, 12))
-
-hdag_comparison_df = hdag_comparison_df.sort("Trees Ranked Improvement")
-# Plotting rank plots for each improvement metric
-for i, key in enumerate(["Context Likelihood Improvement", "Branching Process Likelihood Improvement", "Trees Ranked Improvement"]):
-    # Sorting the data and obtaining ranks
-    # sorted_data = np.sort(hdag_comparison_df[key].exp())
-    sorted_data = hdag_comparison_df[key].exp()
-    ranks = np.arange(1, len(sorted_data) + 1)
-
-    # Plotting
-    axs[i].scatter(ranks, sorted_data, marker='o', linestyle='-', edgecolors='k')
-    axs[i].set_title(f'{key} (Ranked)')
-    axs[i].set_xlabel('Rank')
-    axs[i].set_ylabel('Improvement')
-    axs[i].set_yscale('log')
-    axs[i].axhline(y=1, color='lightgrey', linestyle='-', linewidth=1.5, label='Reference (y=1)')
-    # axs[i].set_ylim(bottom=0)
-    # y_ticks = np.unique(np.append([1], axs[i].get_yticks()))
-    # axs[i].set_yticks(y_ticks)
-    axs[i].yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.7)
-
-plt.tight_layout()
-filename = "hdag_comparison_rankplots.pdf"
-fig.savefig(filename)
-print(filename)
+# fig, axs = plt.subplots(3, 1, figsize=(8, 12))
+#
+# hdag_comparison_df = hdag_comparison_df.sort("Trees Ranked Improvement")
+# # Plotting rank plots for each improvement metric
+# for i, key in enumerate(["Context Likelihood Improvement", "Branching Process Likelihood Improvement", "Trees Ranked Improvement"]):
+#     # Sorting the data and obtaining ranks
+#     # sorted_data = np.sort(hdag_comparison_df[key].exp())
+#     sorted_data = hdag_comparison_df[key].exp()
+#     ranks = np.arange(1, len(sorted_data) + 1)
+#
+#     # Plotting
+#     axs[i].scatter(ranks, sorted_data, marker='o', linestyle='-', edgecolors='k')
+#     axs[i].set_title(f'{key} (Ranked)')
+#     axs[i].set_xlabel('Rank')
+#     axs[i].set_ylabel('Improvement')
+#     axs[i].set_yscale('log')
+#     axs[i].axhline(y=1, color='lightgrey', linestyle='-', linewidth=1.5, label='Reference (y=1)')
+#     # axs[i].set_ylim(bottom=0)
+#     # y_ticks = np.unique(np.append([1], axs[i].get_yticks()))
+#     # axs[i].set_yticks(y_ticks)
+#     axs[i].yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.7)
+#
+# plt.tight_layout()
+# filename = "hdag_comparison_rankplots.pdf"
+# fig.savefig(filename)
+# print(filename)
 # # Add a color bar as a legend for the colors
 # cbar = fig.colorbar(scatter, ax=ax)
 # cbar.set_label('Ratio of Best Mutability')
@@ -459,3 +464,11 @@ tree_scatter_test_df = hdag_comparison_df.sort("Trees Ranked Improvement", "Log_
 print("Choose one of these replicates to run tree_scatter.py on:")
 pl.Config.set_tbl_rows(100)
 print(tree_scatter_test_df.tail(100))
+
+print("All those with RF distance improvement will be written to example_paths.txt.")
+simids = list(tree_scatter_test_df.filter(pl.col("RF_Improvement"))["SimID"])
+
+with open('example_sims.txt', "w") as fh:
+    for name in simids:
+        print(name, file=fh)
+

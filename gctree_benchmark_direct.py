@@ -13,6 +13,21 @@ import ete3
 DEBUG=False
 
 
+def compute_reversions_of_history(history):
+    reversions = 0
+    edges = list(history.get_edges(skip_ua_node=True))
+    root = edges[0][0]
+    root.left_bases = [frozenset()] * len(root.label.sequence)
+    for parent, child in edges:
+        child_left_bases = parent.left_bases.copy()
+        for idx, (pnuc, cnuc) in enumerate(zip(parent.label.sequence, child.label.sequence)):
+            if pnuc != cnuc:
+                if cnuc in parent.left_bases[idx]:
+                    reversions += 1
+                child_left_bases[idx] |= frozenset({pnuc})
+        child.left_bases = child_left_bases
+    return reversions
+
 
 @click.command()
 @click.argument('output_file')
@@ -33,42 +48,51 @@ def main(output_file, parsimony_forest, fivemer_mutabilities, fivemer_substituti
         forest = pickle.load(fh)
     dag = forest._forest
     dnapars_trees = gctree.phylip_parse.parse_outfile(dnapars_outfile, abundances, root_name)
+    naive_seq = forest._validation_stats["root_seq"]
 
     with open(meta_file, 'r') as fh:
         chain_split = json.loads(fh.read())["l_offset"]
 
+    ll_dagfuncs = gctree.branching_processes._ll_genotype_dagfuncs(*forest.parameters).weight_funcs
+    mut_funcs = gctree.branching_processes._mutability_dagfuncs(
+        splits=[int(chain_split)],
+        mutability_file=fivemer_mutabilities,
+        substitution_file=fivemer_substitution,
+    ).weight_funcs
+    poisson_funcs = gctree.mutation_model._context_poisson_likelihood_dagfuncs(
+        splits=[int(chain_split)],
+        mutability_file=fivemer_mutabilities,
+        substitution_file=fivemer_substitution,
+    ).weight_funcs
+    allele_funcs = hdag.utils.AddFuncDict(
+        {
+            "start_func": lambda n: 0,
+            "edge_weight_func": lambda n1, n2: 0 if n1.is_ua_node() else int(n1.label.sequence != n2.label.sequence),
+            "accum_func": sum,
+        },
+        name="NumAlleles",
+    )
+    reversion_funcs = gctree.branching_processes._naive_reversion_dagfuncs(naive_seq).weight_funcs
+    placeholder_funcs = hdag.utils.AddFuncDict(
+        {
+            "start_func": lambda n: 0,
+            "edge_weight_func": lambda n1, n2: 0,
+            "accum_func": sum,
+        },
+        name="Whole DAG",
+    )
     
     kwargls = [
-        (ll_dagfuncs := gctree.branching_processes._ll_genotype_dagfuncs(*forest.parameters).weight_funcs, max, dag, ""),
-        (mut_funcs := gctree.branching_processes._mutability_dagfuncs(
-            splits=[int(chain_split)],
-            mutability_file=fivemer_mutabilities,
-            substitution_file=fivemer_substitution,
-        ).weight_funcs, min, dag, ""),
-        (poisson_funcs := gctree.mutation_model._context_poisson_likelihood_dagfuncs(
-            splits=[int(chain_split)],
-            mutability_file=fivemer_mutabilities,
-            substitution_file=fivemer_substitution,
-        ).weight_funcs, max, dag, ""),
-        (allele_funcs := hdag.utils.AddFuncDict(
-            {
-                "start_func": lambda n: 0,
-                "edge_weight_func": lambda n1, n2: 0 if n1.is_ua_node() else int(n1.label.sequence != n2.label.sequence),
-                "accum_func": sum,
-            },
-            name="NumAlleles",
-        ), min, dag, ""),
-        (combined_funcs := ll_dagfuncs + poisson_funcs, max, dag, ""),
-        (placeholder_funcs := hdag.utils.AddFuncDict(
-            {
-                "start_func": lambda n: 0,
-                "edge_weight_func": lambda n1, n2: 0,
-                "accum_func": sum,
-            },
-            name="Whole DAG",
-        ), min, dag, ""),
+        ll_dagfuncs,
+        poisson_funcs,
+        combined_funcs := ll_dagfuncs + poisson_funcs,
+        rev_combined_funs := reversion_funcs + ll_dagfuncs + poisson_funcs,
+        no_bp_funcs := reversion_funcs + poisson_funcs,
+        placeholder_funcs,
     ]
     combined_funcs.name = "Likelihood_then_Context"
+    rev_combined_funs.name = "Reversions_then_Default"
+    no_bp_funcs.name = "Reversions_then_Context"
 
 
 
@@ -157,12 +181,17 @@ def main(output_file, parsimony_forest, fivemer_mutabilities, fivemer_substituti
 
     rf_data = {}
     dag_weight_values = {}
-    for kwargs, opt_func, dag, extra_name in kwargls:
+    for kwargs in kwargls:
         trimmed_dag = dag.copy()
-        weight_val = trimmed_dag.trim_optimal_weight(**kwargs, optimal_func=opt_func)
+        weight_val = trimmed_dag.trim_optimal_weight(**kwargs, optimal_func=min)
         data = trimmed_dag.weight_count(**true_tree_comparison_funcs)
-        rf_data[extra_name + kwargs.name] = data
+        rf_data[kwargs.name] = data
         dag_weight_values["best_" + kwargs.name] = weight_val
+
+    # Get reversions for default ranking
+    rev_dag = dag.copy()
+    rev_dag.trim_optimal_weight(**combined_funcs)
+    rev_dag = rev_dag[0]
 
     with open(output_file, 'wb') as fh:
         fh.write(pickle.dumps(
@@ -172,7 +201,9 @@ def main(output_file, parsimony_forest, fivemer_mutabilities, fivemer_substituti
              "TrueTreeNumNodes": modeltree.optimal_weight_annotate(**node_count_funcs),
              "dnaparsTrees": [tree_summary_col_names] + dnapars_data,
              "SimulationPath": matched_simu_path,
-             "InferencePath": parsimony_forest,}
+             "InferencePath": parsimony_forest,
+             "LikelihoodThenContextReversions": compute_reversions_of_history(rev_dag),
+             "SimuReversions": compute_reversions_of_history(modeltree)}
         ))
 
 

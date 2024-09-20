@@ -29,7 +29,7 @@ best_dnapars_rf = dnapars_df["normalized_rf"].min()
 # Add grid lines
 ax.grid(True, which='both', linestyle='--', linewidth=0.5, zorder=1)
 
-_x_y_data = ["LogBPLikelihood", "LogContextLikelihood"]
+_x_y_data = ["BPLikelihoodLogLoss", "ContextLikelihoodLogLoss"]
 
 scatter_titles = ["History sDAG trees", "Dnapars trees"]
 
@@ -37,7 +37,7 @@ dag_not_better_df = dag_df.filter(pl.col("normalized_rf") >= best_dnapars_rf)
 dag_better_df = dag_df.filter(pl.col("normalized_rf") < best_dnapars_rf)
 
 ax.scatter(
-    *[dag_not_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
+    *[-dag_not_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
     # edgecolor='black',  # Black border around each point
     linewidths=0,
     color=colormaps["Dark2"].colors[0],
@@ -49,7 +49,20 @@ ax.scatter(
 )
 
 ax.scatter(
-    *[dag_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
+    *[-dnapars_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
+    # edgecolor='black',  # Black border around each point
+    # facecolors='none',
+    linewidths=0,
+    color=colormaps["Dark2"].colors[1],
+    alpha=.9,
+    marker='.',
+    label="Dnapars trees",
+    zorder=2,
+    s=55,
+)
+
+ax.scatter(
+    *[-dag_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
     edgecolor='black',  # Black border around each point
     linewidths=.7,
     color=colormaps["Dark2"].colors[0],
@@ -64,18 +77,6 @@ ax.scatter(
     zorder=2,
 )
 
-ax.scatter(
-    *[dnapars_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
-    # edgecolor='black',  # Black border around each point
-    # facecolors='none',
-    linewidths=0,
-    color=colormaps["Dark2"].colors[1],
-    alpha=.9,
-    marker='.',
-    label="Dnapars trees",
-    zorder=2,
-    s=55,
-)
 
 ax.set_title('Dnapars and History sDAG Tree Likelihoods')
 ax.set_xlabel('Branching Process Log-Likelihood')
