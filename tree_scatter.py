@@ -1,6 +1,7 @@
 import polars as pl
 import statistics as stat
 import matplotlib.pyplot as plt
+import matplotlib
 import math
 import numpy as np
 from pathlib import Path
@@ -40,10 +41,10 @@ ax.scatter(
     *[-dag_not_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
     # edgecolor='black',  # Black border around each point
     linewidths=0,
-    color=colormaps["Dark2"].colors[0],
-    alpha=.6,
+    color=matplotlib.colors.colorConverter.to_rgba(colormaps["Dark2"].colors[0], alpha=.3),
+    # alpha=.6,
     marker='.',
-    s=30,
+    s=70,
     label="History sDAG trees",
     zorder=2,
 )
@@ -53,22 +54,22 @@ ax.scatter(
     # edgecolor='black',  # Black border around each point
     # facecolors='none',
     linewidths=0,
-    color=colormaps["Dark2"].colors[1],
-    alpha=.9,
+    color=matplotlib.colors.colorConverter.to_rgba(colormaps["Dark2"].colors[1], alpha=1),
+    # alpha=.9,
     marker='.',
     label="Dnapars trees",
     zorder=2,
-    s=55,
+    s=70,
 )
 
 ax.scatter(
     *[-dag_better_df.select((pl.col(col)).alias("this"))["this"] for col in _x_y_data],
     edgecolor='black',  # Black border around each point
     linewidths=.7,
-    color=colormaps["Dark2"].colors[0],
-    alpha=.6,
+    color=matplotlib.colors.colorConverter.to_rgba(colormaps["Dark2"].colors[0], alpha=.3),
+    # alpha=.6,
     marker='.',
-    s=30,
+    s=70,
 #     linewidths=0,
 #     color=colormaps["Dark2"].colors[1],
 #     alpha=.6,
