@@ -1,0 +1,13 @@
+name: gctree2-validation-plots
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - gctree=4.3.0
+  - matplotlib
+  - numpy
+  - polars
+  - click
+  - ete3

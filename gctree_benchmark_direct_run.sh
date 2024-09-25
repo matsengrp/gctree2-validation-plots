@@ -1,11 +1,17 @@
 #!/bin/zsh
 set -eu
+# Modify these prefixes to point to simulations and inference results from the
+# simulation pipeline provided with the paper:
+sim_prefix=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6
+inference_prefix=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6
+# If a cluster is not available, change value to 0:
+use_cluster=1
 
-source /home/wdumm/gctree-benchmark-new/gctreeenvpy3.10/bin/activate
+conda activate gctree2-validation-plots
 
-mkdir -p testdir
-true_filepaths=testdir/truefilepathsmap.txt
-true_trees=testdir/truetreesmap.txt
+mkdir -p workdir
+true_filepaths=workdir/truefilepathsmap.txt
+true_trees=workdir/truetreesmap.txt
 rm -f $true_filepaths
 touch $true_filepaths
 
@@ -13,31 +19,40 @@ touch $true_filepaths
 rm -f $true_trees
 touch $true_trees
 
-# # This was the old glob pattern:
-# for gctreepath in /fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/*/obs-times-*/*/simu/selection/simu/event-*/; do
-
-for gctreepath in /fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6/seed-*/obs-times-(15|20|30|40|50)/simu/selection/simu/event-*/; do
+for gctreepath in $sim_prefix/seed-*/obs-times-(15|20|30|40|50)/simu/selection/simu/event-*/; do
     echo $gctreepath $(./get_true_tree_newick.py $gctreepath/simu_lineage_tree.p) >> $true_trees
 done
 # ## End building Newicks of true trees
 
 echo Done putting new trees in $true_trees
 
+
+# Do evaluation:
 count=0
-
-# # old glob pattern:
-# for gctreepath in /fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/*/obs-times-*/*/partis/gctree/iclust-*/; do
-
-# ### Do the evaluation:
-rm -f testdir/*.p
-for gctreepath in /fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6/seed-*/obs-times-(15|20|30|40|50)/partis/gctree/iclust-*/; do
-    python gctree_benchmark_direct.py testdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX
+for gctreepath in $inference_prefix/seed-*/obs-times-(15|20|30|40|50)/partis/gctree/iclust-*/; do
+    # if a cluster is available:
+    if [ "$use_cluster" -eq 1 ]; then
+        sbatch -c 1 -J bn$count -o cluster_benchmark.log \
+            --wrap "\
+                python gctree_benchmark_direct.py testdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX"
+    else
+        python gctree_benchmark_direct.py workdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX
+    fi
 
     echo $gctreepath $count >> $true_filepaths
     echo $gctreepath $count
     count=$(expr $count + 1)
-
 done
+
+
+if [ "$use_cluster" -eq 1 ]; then
+    # Wait for all cluster jobs to finish (Comment out if no cluster!)
+    while [ "$(squeue -u $USER -l | wc -l)" -ne 2 ]; do
+      # Sleep for a short interval before checking again
+      sleep 30
+    done
+fi
+
 
 # Do plotting:
 python plot_criterion_comparison.py
@@ -55,7 +70,7 @@ cat example_sims.txt | while read -r sim; do
     # Check if a match was found
     if [ -n "$gctreepath" ]; then
         echo "Simulation $sim: $gctreepath"
-        python gctree_benchmark_direct.py ignorethisfile.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX -a testdir/all_dagtrees_example.p
+        python gctree_benchmark_direct.py ignorethisfile.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX -a workdir/all_dagtrees_example.p
 
         rm ignorethisfile.p
         python tree_scatter.py
