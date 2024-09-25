@@ -1,0 +1,6 @@
+gctree==4.3.0
+matplotlib
+numpy
+polars
+click
+ete3

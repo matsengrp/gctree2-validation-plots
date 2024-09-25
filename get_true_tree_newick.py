@@ -7,7 +7,7 @@ import sys
 
 input_pickle = sys.argv[1]
 
-with open(input_pickle, 'rb') as fh:
+with open(input_pickle, "rb") as fh:
     t = pickle.load(fh)
 
 print(t.write(features=["nuc_seq"], format_root_node=True))

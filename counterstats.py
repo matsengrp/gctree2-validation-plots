@@ -7,6 +7,7 @@ def countermean(c):
     total = sum(k * v for k, v in c.items())
     return total / sum(c.values())
 
+
 class CounterIndexer:
 
     def __init__(self, counter: Counter):
@@ -21,6 +22,7 @@ class CounterIndexer:
                 break
         return curr_num
 
+
 def countermedian(c):
     indexer = CounterIndexer(c)
 
@@ -32,6 +34,7 @@ def countermedian(c):
         indices = [half - 1, half]
     centervals = [indexer[idx] for idx in indices]
     return sum(centervals) / len(centervals)
+
 
 def testindexer():
     test_datasets = [
@@ -45,7 +48,10 @@ def testindexer():
         dataindexer = CounterIndexer(Counter(data))
         for idx, num in enumerate(sorted(data)):
             if dataindexer[idx] != num:
-                print(f"Index {idx} in {data} should be {num} but is {dataindexer[idx]}")
+                print(
+                    f"Index {idx} in {data} should be {num} but is {dataindexer[idx]}"
+                )
+
 
 def testmean():
     test_datasets = [
@@ -57,7 +63,9 @@ def testmean():
     for data in test_datasets:
         test, real = countermean(Counter(data)), statistics.mean(data)
         if test != real:
-            print(f"counter mean {test} doesn't match real mean {real} on dataset:\n{sorted(data)}")
+            print(
+                f"counter mean {test} doesn't match real mean {real} on dataset:\n{sorted(data)}"
+            )
 
 
 def testmedian():
@@ -70,5 +78,6 @@ def testmedian():
     for data in test_datasets:
         test, real = countermedian(Counter(data)), statistics.median(data)
         if test != real:
-            print(f"counter median {test} doesn't match real median {real} on dataset:\n{sorted(data)}")
-
+            print(
+                f"counter median {test} doesn't match real median {real} on dataset:\n{sorted(data)}"
+            )

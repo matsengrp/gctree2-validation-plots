@@ -5,6 +5,7 @@ ParsimonyForestPath,FromHistoryDAG,NumTreesRanked,BestLikelihood,BestMutability
 Note that trees are ranked lexicographically, maximizing likelihood, then minimizing mutability parsimony. That is, BestMutability is the best mutability
 parsimony score of a tree maximizing likelihood, but not necessarily the best mutability parsimony of any tree being ranked.
 """
+
 from collections import Counter
 import json
 import gctree
@@ -18,8 +19,9 @@ import click
 # substitution file
 # parsimony forest
 
+
 @click.command()
-@click.argument('input_sequences')
+@click.argument("input_sequences")
 def main(input_sequences):
 
     input_sequences = Path(input_sequences)
@@ -34,24 +36,26 @@ def main(input_sequences):
                 if key != "XnaiveX":
                     if key[0:-15] in candidate_fasta:
                         return path
-        
+
     matched_path = evaluate_paths(possible_paths)
     if matched_path is None:
         raise RuntimeError("Could not match simulation with inference")
 
-    simu_tree = ete3.Tree(newick=(matched_path / 'simu.nwk').as_posix(), format=1)
-    simu_alignment = hdag.utils.load_fasta(matched_path / 'simu.fasta')
+    simu_tree = ete3.Tree(newick=(matched_path / "simu.nwk").as_posix(), format=1)
+    simu_alignment = hdag.utils.load_fasta(matched_path / "simu.fasta")
 
     # build conversion function which removes padding in simu_alignment
     # sequences to get sequences like the ones in input_fasta
 
-
-    converted_simu_alignment = {key: val.replace('N', '') for key, val in simu_alignment.items()}
-
+    converted_simu_alignment = {
+        key: val.replace("N", "") for key, val in simu_alignment.items()
+    }
 
     # Double check that converted sequences are the same for leaves (also need
     # to convert leaf name keys)
-    assert {key: val for key, val in converted_simu_alignment.items() if 'leaf' in key} == {key[0:-15]: val for key, val in input_fasta.items() if key != 'XnaiveX'}
+    assert {
+        key: val for key, val in converted_simu_alignment.items() if "leaf" in key
+    } == {key[0:-15]: val for key, val in input_fasta.items() if key != "XnaiveX"}
 
     # put sequences from simu_alignment on sim_tree
     for node in simu_tree.traverse():
@@ -88,8 +92,6 @@ def main(input_sequences):
     cforest = gctree.CollapsedForest([simu_tree])
     return cforest._forest
 
-    
-        
 
 if __name__ == "__main__":
     main()

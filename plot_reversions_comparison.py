@@ -10,7 +10,7 @@ from counterstats import countermean, countermedian
 from matplotlib import colormaps
 from collections import defaultdict, Counter
 
-read_data_from = Path('testdir')
+read_data_from = Path("testdir")
 
 
 counter_summarizers = [
@@ -28,11 +28,17 @@ dnapars_summarizers = [
     ("median", stat.median),
 ]
 
+
 def load_counters(cpath):
-    with open(cpath, 'rb') as fh:
+    with open(cpath, "rb") as fh:
         return pickle.load(fh)
 
-datacounters = [(int(p.stem), load_counters(p)) for p in read_data_from.glob('*') if p.stem not in ("truefilepathsmap", "truetreesmap", "all_dagtrees_example")]
+
+datacounters = [
+    (int(p.stem), load_counters(p))
+    for p in read_data_from.glob("*")
+    if p.stem not in ("truefilepathsmap", "truetreesmap", "all_dagtrees_example")
+]
 
 simu_reversions = [dc[1]["SimuReversions"] for dc in datacounters]
 infer_reversions = [dc[1]["LikelihoodThenContextReversions"] for dc in datacounters]
@@ -43,7 +49,9 @@ fig, ax = plt.subplots()
 
 
 # Plot normalized histogram for real data with bins one unit wide
-counts, bins, patches = ax.hist(simu_reversions, alpha=0.5, label='Simulated Trees', density=True)
+counts, bins, patches = ax.hist(
+    simu_reversions, alpha=0.5, label="Simulated Trees", density=True
+)
 
 # # Annotate the bars with the out-degree number and remove x-axis ticks
 # ax.set_xticks([])
@@ -52,16 +60,23 @@ counts, bins, patches = ax.hist(simu_reversions, alpha=0.5, label='Simulated Tre
 #         ax.text(bin + 0.5, -.002, f'{int(bin)}', ha='center', va='bottom', color='black', fontsize=5, zorder=1000)
 
 # Plot outlined histogram for simulated data with bins one unit wide
-ax.hist(infer_reversions, alpha=0.5, label='Inferred Trees', density=True, histtype="step", edgecolor="black", bins=bins)
+ax.hist(
+    infer_reversions,
+    alpha=0.5,
+    label="Inferred Trees",
+    density=True,
+    histtype="step",
+    edgecolor="black",
+    bins=bins,
+)
 
 
 # Add labels and title
-ax.set_xlabel('Reversion Counts')
-ax.set_ylabel('Normalized Frequency')
-ax.set_title('Reversion Count Comparison')
+ax.set_xlabel("Reversion Counts")
+ax.set_ylabel("Normalized Frequency")
+ax.set_title("Reversion Count Comparison")
 # ax.xaxis.labelpad = 20
 ax.legend()
 
 # Show plot
 fig.savefig("reversion_comparison.pdf")
-
