@@ -9,6 +9,9 @@ use_cluster=1
 
 conda activate gctree2-validation-plots
 
+wget -O HS5F_Mutability.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Mutability.csv
+wget -O HS5F_Substitution.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Substitution.csv
+
 mkdir -p workdir
 true_filepaths=workdir/truefilepathsmap.txt
 true_trees=workdir/truetreesmap.txt
