@@ -1,5 +1,4 @@
-This directory contains scripts for benchmarking the newest version of gctree,
-using Duncan's bcr-phylo simulations.
+This repository contains code to reproduce some of the plots and analysis in the paper "Leveraging DAGs to improve context-sensitive and abundance-aware tree estimation."
 
 # Environment Setup:
 Running the scripts in this repo requires a python environment with `gctree`
