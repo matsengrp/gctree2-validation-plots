@@ -8,6 +8,9 @@ and other dependencies installed. The dependencies are listed in
 environment file `environment.yml` is also provided.
 
 ```
+git clone git@github.com:matsengrp/gctree2-validation-plots.git
+cd gctree2-validation-plots
+
 conda env create -f environment.yml
 conda activate gctree2-validation-plots
 ```

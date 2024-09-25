@@ -7,7 +7,6 @@ inference_prefix=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6
 # If a cluster is not available, change value to 0:
 use_cluster=1
 
-conda activate gctree2-validation-plots
 
 wget -O HS5F_Mutability.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Mutability.csv
 wget -O HS5F_Substitution.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Substitution.csv
