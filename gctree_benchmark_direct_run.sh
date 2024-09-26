@@ -8,16 +8,17 @@ inference_prefix=/fh/fast/matsen_e/dralph/partis/paired-loci/gct-valid/v6
 use_cluster=1
 
 
-wget -O HS5F_Mutability.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Mutability.csv
-wget -O HS5F_Substitution.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Substitution.csv
-
 mkdir -p workdir
 true_filepaths=workdir/truefilepathsmap.txt
 true_trees=workdir/truetreesmap.txt
 rm -f $true_filepaths
 touch $true_filepaths
 
+wget -O HS5F_Mutability.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Mutability.csv
+wget -O HS5F_Substitution.csv https://bitbucket.org/kleinstein/shazam/raw/ba4b30fc6791e2cfd5712e9024803c53b136e664/data-raw/HS5F_Substitution.csv
+
 # #### Build list of true tree newicks
+echo Building list of true tree newicks. This step will take awhile...
 rm -f $true_trees
 touch $true_trees
 
