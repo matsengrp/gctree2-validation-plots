@@ -21,7 +21,7 @@ To produce the plots, you must first edit `gctree_benchmark_direct_run.sh` to
 point it toward the simulated data and inference outputs. This may be done by
 editing the variables `sim_prefix` and `inference_prefix` at the top of the
 script.
-The values for `sim_prefix` and `inference_prefix` specify where the outputs
+The values for `sim_prefix` and `inference_prefix` specify where to find the outputs
 from running the simulation and inference code, which is provided with the
 paper.
 
