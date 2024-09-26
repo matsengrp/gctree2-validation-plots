@@ -10,7 +10,7 @@ from counterstats import countermean, countermedian
 from matplotlib import colormaps
 from collections import defaultdict, Counter
 
-read_data_from = Path("testdir")
+read_data_from = Path("workdir")
 
 
 counter_summarizers = [

@@ -36,7 +36,7 @@ for gctreepath in $inference_prefix/seed-*/obs-times-(15|20|30|40|50)/partis/gct
     if [ "$use_cluster" -eq 1 ]; then
         sbatch -c 1 -J bn$count -o cluster_benchmark.log \
             --wrap "\
-                python gctree_benchmark_direct.py testdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX"
+                python gctree_benchmark_direct.py workdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX"
     else
         python gctree_benchmark_direct.py workdir/$count.p $gctreepath/gctree.out.inference.parsimony_forest.p HS5F_Mutability.csv HS5F_Substitution.csv $gctreepath/input-seqs.fa $gctreepath/meta.yaml $true_trees $gctreepath/outfile $gctreepath/abundances.csv XnaiveX
     fi

@@ -10,7 +10,7 @@ from counterstats import countermean, countermedian
 from matplotlib import colormaps
 from collections import defaultdict, Counter
 
-with open("testdir/all_dagtrees_example.p", "rb") as fh:
+with open("workdir/all_dagtrees_example.p", "rb") as fh:
     data = pickle.load(fh)
 
 n_leaves, n_nodes_true_tree, dag_data, dnapars_data = (
